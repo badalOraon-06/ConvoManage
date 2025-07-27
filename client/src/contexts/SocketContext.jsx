@@ -7,15 +7,20 @@ const SocketContext = createContext()
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null)
   const [isConnected, setIsConnected] = useState(false)
+  const [onlineUsers, setOnlineUsers] = useState([])
   const { isAuthenticated, user } = useAuth()
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Initialize socket connection
+      // Initialize socket connection with enhanced auth
       const socketInstance = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
         auth: {
-          userId: user.id
-        }
+          token: localStorage.getItem('token'),
+          userId: user.id,
+          userName: user.name,
+          userRole: user.role
+        },
+        transports: ['websocket', 'polling']
       })
 
       // Connection event listeners
@@ -34,12 +39,26 @@ export const SocketProvider = ({ children }) => {
         setIsConnected(false)
       })
 
+      // User presence events
+      socketInstance.on('users-online', (users) => {
+        setOnlineUsers(users)
+      })
+
+      socketInstance.on('user-connected', (userData) => {
+        setOnlineUsers(prev => [...prev.filter(u => u.id !== userData.id), userData])
+      })
+
+      socketInstance.on('user-disconnected', (userId) => {
+        setOnlineUsers(prev => prev.filter(u => u.id !== userId))
+      })
+
       setSocket(socketInstance)
 
       return () => {
         socketInstance.disconnect()
         setSocket(null)
         setIsConnected(false)
+        setOnlineUsers([])
       }
     }
   }, [isAuthenticated, user])
@@ -113,6 +132,7 @@ export const SocketProvider = ({ children }) => {
   const value = {
     socket,
     isConnected,
+    onlineUsers,
     joinSession,
     leaveSession,
     sendMessage,

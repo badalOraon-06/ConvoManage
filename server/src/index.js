@@ -4,24 +4,20 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { createServer } = require('http');
-const { Server } = require('socket.io');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const sessionRoutes = require('./routes/sessions');
 const userRoutes = require('./routes/users');
 const chatRoutes = require('./routes/chat');
+const qaRoutes = require('./routes/qa');
+const { initializeSocket } = require('./socket/socketHandlers');
 
 const app = express();
 const server = createServer(app);
 
-// Socket.IO setup
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
-});
+// Initialize Socket.IO with enhanced handlers
+const io = initializeSocket(server);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -44,6 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/qa', qaRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -51,59 +48,6 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
-  });
-});
-
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
-
-  // Join session room
-  socket.on('join-session', (sessionId) => {
-    socket.join(`session-${sessionId}`);
-    console.log(`User ${socket.id} joined session ${sessionId}`);
-  });
-
-  // Leave session room
-  socket.on('leave-session', (sessionId) => {
-    socket.leave(`session-${sessionId}`);
-    console.log(`User ${socket.id} left session ${sessionId}`);
-  });
-
-  // Handle chat messages
-  socket.on('send-message', (data) => {
-    const { sessionId, message, user } = data;
-    const messageData = {
-      id: Date.now(),
-      sessionId,
-      message,
-      user,
-      timestamp: new Date().toISOString()
-    };
-    
-    // Broadcast message to all users in the session room
-    io.to(`session-${sessionId}`).emit('receive-message', messageData);
-  });
-
-  // Handle Q&A questions
-  socket.on('send-question', (data) => {
-    const { sessionId, question, user } = data;
-    const questionData = {
-      id: Date.now(),
-      sessionId,
-      question,
-      user,
-      timestamp: new Date().toISOString(),
-      answered: false
-    };
-    
-    // Broadcast question to all users in the session room
-    io.to(`session-${sessionId}`).emit('receive-question', questionData);
-  });
-
-  // Handle disconnection
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
   });
 });
 

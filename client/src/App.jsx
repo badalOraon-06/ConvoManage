@@ -12,6 +12,7 @@ import ProtectedRoute from './components/Auth/ProtectedRoute'
 import Home from './pages/Home'
 import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
+import TestLogin from './pages/TestLogin'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Sessions from './pages/Sessions/Sessions'
 import SessionDetail from './pages/Sessions/SessionDetail'
@@ -33,6 +34,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/test" element={<TestLogin />} />
               
               {/* Protected Routes */}
               <Route path="/app" element={
