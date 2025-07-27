@@ -45,7 +45,7 @@ function App() {
                 <Route path="sessions" element={<Sessions />} />
                 <Route path="sessions/:id" element={<SessionDetail />} />
                 <Route path="sessions/create" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['admin', 'speaker']}>
                     <CreateSession />
                   </ProtectedRoute>
                 } />
